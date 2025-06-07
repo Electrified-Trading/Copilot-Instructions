@@ -73,7 +73,10 @@ tanh(series float x) =>
     else
         exp_2x = math.exp(2 * x)
         (exp_2x - 1) / (exp_2x + 1)
+///
 ```
+
+Note: placing `///` at the end of a function and an extra line after, helps editors to collapse it easily.
 
 ---
 
@@ -91,6 +94,7 @@ Use the Mozilla Public License 2.0 comment at the top of all files.
 ### Inputs Organization
 - Group related `input.*` calls using `group="..."` 
 - Keep related inputs on same line with `inline="..."`
+- Prefer using CONSTANT = "Constant" at the top of the file for reused strings
 - Use tooltips for non-obvious settings
 - Avoid magic numbers—use named parameters
 
