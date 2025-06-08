@@ -266,6 +266,65 @@ Use the Mozilla Public License 2.0 comment at the top of all files.
 
 ---
 
+## 📊 Logging and Debug Guidelines
+
+### Developer-Friendly Logging System
+**Never use intrusive debug tables** - They clutter charts and interfere with user analysis. Instead, use Pine Script's native logging API with proper frequency controls.
+
+**Important**: Pine Script v6 only has **3 logging functions**:
+- `log.info()` - Gray messages for general information
+- `log.warning()` - Orange messages for warnings
+- `log.error()` - Red messages for errors
+
+**There are NO `log.debug()` or `log.trace()` functions in Pine Script v6.**
+
+### Log Level Usage
+Use semantically appropriate log levels (Pine Script v6 only has 3 levels):
+
+**log.info()** - General information, progress tracking, and regular events
+```pinescript
+if debug_level == "Verbose"
+    log.info("Bar #{0}: Displacement={1}, Raw Z-Score={2}", 
+              bar_index, displacement, raw_zscore)
+```
+
+**log.warning()** - Statistical reliability issues or data quality problems
+```pinescript
+if sample_size < minimum_samples
+    log.warning("Insufficient statistical samples ({0} < {1}) - results may be unreliable", 
+                sample_size, minimum_samples)
+```
+
+**log.error()** - Critical failures or exceptional conditions
+```pinescript
+if array.size(data) == 0
+    log.error("No data available for statistical analysis - cannot proceed")
+```
+
+### Frequency Control Pattern
+Always provide user control over logging frequency to prevent log spam:
+
+```pinescript
+// Input controls
+log_frequency = input.string("Significant Events", "Debug Frequency", 
+                 options=["Every Bar", "Significant Events", "Extreme Events Only"])
+
+// Frequency filtering
+should_log_info = log_frequency == "Every Bar" or is_significant_event
+should_log_warning = data_quality_issue or reliability_concern
+should_log_error = critical_failure or exception_condition
+```
+
+### Best Practices
+- **Structure messages clearly** with key=value pairs for readability
+- **Use conditional logging** to respect user preferences and performance
+- **Group related log statements** to maintain context
+- **Prefer descriptive variable names** in log messages for clarity
+- **Include context** (bar index, timeframe, confidence levels) when relevant
+- **Avoid logging in tight loops** without frequency controls
+
+---
+
 ## 💻 Code Formatting Rules
 
 ### Multi-line Formatting
