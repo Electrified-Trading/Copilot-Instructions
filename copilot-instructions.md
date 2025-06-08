@@ -80,6 +80,154 @@ Note: placing `///` at the end of a function and an extra line after, helps edit
 
 ---
 
+## 🚀 Advanced Pine Script Principles & Techniques
+
+### 1. Pure Functions with Implicit Caching
+Prefer pure functions that return `series` outputs. Pine Script's implicit caching means calling a function with the same parameter values across bars creates a cached series that Pine can reference efficiently using back-referencing.
+
+**Example:**
+```pinescript
+// Pure function - Pine Script caches results automatically
+get_adaptive_ma(series float source, series int length, series float factor) =>
+    alpha = 2.0 / (length + 1) * factor
+    var float ema_value = na
+    ema_value := na(ema_value) ? source : alpha * source + (1 - alpha) * ema_value
+    ema_value
+
+// Each unique parameter combination gets its own cached series
+fast_ma = get_adaptive_ma(close, 10, 1.5)
+slow_ma = get_adaptive_ma(close, 20, 1.0)
+
+// Back-reference cached series - Pine Script efficiently retrieves historical values
+ma_crossover = ta.crossover(fast_ma, slow_ma)
+ma_divergence = fast_ma - fast_ma[5]  // Previous values accessible via caching
+trend_strength = (fast_ma - slow_ma) / slow_ma[10] * 100  // Historical comparison
+
+// Multiple calls with same parameters reuse cached series (no recalculation)
+ma_signal = get_adaptive_ma(close, 10, 1.5)  // Reuses fast_ma cache
+previous_signal = ma_signal[3]  // Back-reference works seamlessly
+```
+
+### 2. Bar-Scoped Memory with Parameterized Functions
+Use `var` inside functions to persist state across bars. When combined with parameterized function calls, this enables bar-scoped memory where each unique argument set gets its own persistent storage.
+
+**Example:**
+```pinescript
+// Function maintains separate state for each parameter combination
+rolling_zscore(series float value, series int window) =>
+    var array<float> data = array.new<float>()
+    
+    // Each unique window size gets its own array
+    array.push(data, value)
+    if array.size(data) > window
+        array.shift(data)
+    
+    if array.size(data) >= window
+        mean = array.avg(data)
+        std_dev = array.stdev(data)
+        std_dev > 0 ? (value - mean) / std_dev : 0.0
+    else
+        na
+
+// Different window sizes maintain separate internal arrays
+zscore_short = rolling_zscore(close, 20)
+zscore_long = rolling_zscore(close, 50)
+```
+
+### 3. Encapsulated Statistical Calculations
+Functions like `get_zscore(windowSize, displacement, isPositive)` can encapsulate statistical calculations. Internally, these functions may maintain rolling arrays of historical values and compute results like mean, standard deviation, or z-score dynamically.
+
+**Example:**
+```pinescript
+// Encapsulated statistical engine with internal state management
+get_directional_zscore(series float displacement, series int window, series bool is_positive) =>
+    var array<float> pos_history = array.new<float>()
+    var array<float> neg_history = array.new<float>()
+    
+    // Separate positive and negative samples
+    if displacement > 0 and is_positive
+        array.push(pos_history, displacement)
+        if array.size(pos_history) > window
+            array.shift(pos_history)
+    else if displacement < 0 and not is_positive
+        array.push(neg_history, math.abs(displacement))
+        if array.size(neg_history) > window
+            array.shift(neg_history)
+    
+    // Calculate z-score using appropriate distribution
+    relevant_data = is_positive ? pos_history : neg_history
+    if array.size(relevant_data) >= 10
+        mean = array.avg(relevant_data)
+        std_dev = array.stdev(relevant_data)
+        std_dev > 0 ? (math.abs(displacement) - mean) / std_dev : 0.0
+    else
+        na
+```
+
+### 4. Modular Statistical Structures with Records
+To represent arrays of arrays or modular statistical structures, wrap arrays in records or objects. These can be stored in a master array or dictionary keyed by parameters, supporting scalable and layered models while maintaining a functional structure.
+
+**Example:**
+```pinescript
+// Statistical module as a record/type
+type StatEngine
+    array<float> data
+    float mean
+    float std_dev
+    int max_size
+
+// Factory function for creating statistical engines
+new_stat_engine(simple int max_samples) =>
+    StatEngine.new(
+        data = array.new<float>(),
+        mean = na,
+        std_dev = na,
+        max_size = max_samples
+    )
+
+// Method to update statistical engine
+update_engine(StatEngine engine, series float value) =>
+    array.push(engine.data, value)
+    if array.size(engine.data) > engine.max_size
+        array.shift(engine.data)
+    
+    if array.size(engine.data) >= 10
+        engine.mean := array.avg(engine.data)
+        engine.std_dev := array.stdev(engine.data)
+    
+    engine
+
+// Multi-scale statistical system using records
+var StatEngine short_engine = new_stat_engine(20)
+var StatEngine medium_engine = new_stat_engine(50)
+var StatEngine long_engine = new_stat_engine(100)
+
+// Update all engines with current displacement
+current_displacement = (close - close[20]) / close[20] * 100
+short_engine := update_engine(short_engine, current_displacement)
+medium_engine := update_engine(medium_engine, current_displacement)
+long_engine := update_engine(long_engine, current_displacement)
+```
+
+### 5. Best Practices for SPHE and Advanced Indicators
+
+**State Management:**
+- Use parameterized functions with internal `var` declarations for component isolation
+- Leverage Pine Script's automatic caching for performance optimization
+- Maintain separate statistical distributions for different market conditions
+
+**Scalability:**
+- Wrap complex data structures in records/types for modularity
+- Create factory functions for consistent initialization
+- Use method-like functions for state updates and calculations
+
+**Performance:**
+- Minimize global variables by encapsulating state in functions
+- Take advantage of Pine Script's series caching for repeated calculations
+- Use records to group related data and reduce parameter passing
+
+---
+
 ## 📋 Required Script Structure
 
 ### Version and Description
