@@ -407,6 +407,7 @@ combined_signal
 - String concatenation in `alertcondition(...)` messages not allowed
 - `ta.roc(...)` with length 0 causes runtime error
 - Mixed indentation spacing causes compilation errors
+- **Scale parameter constraint**: `scale=scale.none` only works with `overlay=true`; use `scale.right` or `scale.left` for `overlay=false`
 
 ### Precomputation Pattern
 ```pinescript
